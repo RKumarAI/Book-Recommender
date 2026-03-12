@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bibliograph — Book Recommender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --ink:      #0d0d0d;
+    --paper:    #f5f0e8;
+    --cream:    #ede7d9;
+    --amber:    #c8893a;
+    --amber-lt: #e4a855;
+    --rust:     #a0422a;
+    --sage:     #4a6741;
+    --muted:    #7a7060;
+    --border:   #c5b89a;
+    --card-bg:  #faf6ee;
+    --shadow:   rgba(30,20,5,0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Lora', Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* ── MASTHEAD ──────────────────────────────────────────────────────── */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0 3rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+
+  .wordmark {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--paper);
+    display: flex;
+    align-items: baseline;
+    gap: .35rem;
+  }
+  .wordmark em {
+    color: var(--amber);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: .68rem;
+    color: var(--muted);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  /* ── HERO BAND ─────────────────────────────────────────────────────── */
+  .hero {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 4.5rem 3rem 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '"';
+    font-family: 'Playfair Display', serif;
+    font-size: 28rem;
+    font-weight: 900;
+    color: rgba(200,137,58,0.07);
+    position: absolute;
+    top: -6rem;
+    right: -1rem;
+    line-height: 1;
+    pointer-events: none;
+    select: none;
+  }
+
+  .hero-inner { max-width: 820px; }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+  .hero h1 em { color: var(--amber); font-style: italic; }
+
+  .hero p {
+    font-size: 1.05rem;
+    color: rgba(245,240,232,.72);
+    max-width: 520px;
+    line-height: 1.7;
+    margin-bottom: 2.2rem;
+  }
+
+  /* ── SEARCH BAR ────────────────────────────────────────────────────── */
+  .search-wrap {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    max-width: 700px;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    background: var(--paper);
+    border: 2px solid var(--amber);
+    border-radius: 0;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 var(--amber);
+    transition: box-shadow .2s;
+  }
+  .search-box:focus-within { box-shadow: 8px 8px 0 var(--amber-lt); }
+
+  .search-box input {
+    flex: 1;
+    padding: .9rem 1.1rem;
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    outline: none;
+  }
+  .search-box input::placeholder { color: var(--muted); }
+
+  .search-box button {
+    padding: .9rem 1.4rem;
+    background: var(--amber);
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: .78rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-weight: 500;
+    transition: background .15s;
+  }
+  .search-box button:hover { background: var(--amber-lt); }
+
+  /* mode chips */
+  .mode-chips { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  .chip {
+    font-family: 'DM Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .4rem .85rem;
+    border: 1.5px solid rgba(245,240,232,.3);
+    color: rgba(245,240,232,.6);
+    cursor: pointer;
+    background: transparent;
+    transition: all .18s;
+    border-radius: 0;
+  }
+  .chip.active, .chip:hover {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: var(--ink);
+  }
+
+  /* ── LAYOUT ────────────────────────────────────────────────────────── */
+  .layout {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem 4rem;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  /* ── SIDEBAR ───────────────────────────────────────────────────────── */
+  .sidebar {}
+
+  .panel {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: .7rem 1rem;
+    background: var(--ink);
+    color: var(--amber);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-body { padding: 1rem; }
+
+  /* stats grid */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+
+  .stat-card {
+    text-align: center;
+    padding: .8rem .4rem;
+    background: var(--cream);
+    border: 1px solid var(--border);
+  }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--amber);
+    display: block;
+  }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: .62rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* genre list */
+  .genre-list { list-style: none; }
+  .genre-list li {
+    padding: .5rem .75rem;
+    font-size: .88rem;
+    border-bottom: 1px solid var(--cream);
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .genre-list li:last-child { border-bottom: none; }
+  .genre-list li:hover { background: var(--cream); }
+  .genre-list li.active {
+    background: var(--amber);
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .genre-list li .g-count {
+    font-family: 'DM Mono', monospace;
+    font-size: .7rem;
+    color: var(--muted);
+  }
+  .genre-list li.active .g-count { color: var(--ink); }
+
+  /* description input area */
+  .desc-area {
+    width: 100%;
+    min-height: 100px;
+    padding: .75rem;
+    font-family: 'Lora', serif;
+    font-size: .9rem;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    color: var(--ink);
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+  }
+  .desc-area:focus { border-color: var(--amber); }
+
+  .btn-full {
+    width: 100%;
+    margin-top: .75rem;
+    padding: .75rem;
+    background: var(--ink);
+    color: var(--amber);
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .18s;
+  }
+  .btn-full:hover { background: var(--amber); color: var(--ink); }
+
+  /* top-n slider */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: .75rem;
+  }
+  .slider-row label {
+    font-family: 'DM Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--amber);
+    cursor: pointer;
+  }
+  .slider-val {
+    font-family: 'DM Mono', monospace;
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--amber);
+    min-width: 2ch;
+    text-align: right;
+  }
+
+  /* ── MAIN CONTENT ──────────────────────────────────────────────────── */
+  .main-content {}
+
+  /* results header */
+  .results-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: .75rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .results-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .results-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── QUERY BOOK CARD ───────────────────────────────────────────────── */
+  .query-book {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 1.25rem;
+    border-left: 5px solid var(--amber);
+    position: relative;
+  }
+  .query-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: .5rem;
+    display: block;
+  }
+  .query-book h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: .2rem;
+  }
+  .query-book .author {
+    font-style: italic;
+    color: rgba(245,240,232,.65);
+    font-size: .9rem;
+    margin-bottom: .6rem;
+  }
+  .query-book .desc {
+    font-size: .85rem;
+    line-height: 1.6;
+    color: rgba(245,240,232,.75);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .book-spine {
+    background: var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--ink);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: .5rem .25rem;
+    letter-spacing: .05em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    align-self: stretch;
+    min-height: 90px;
+  }
+
+  /* ── RECOMMENDATION CARDS ─────────────────────────────────────────── */
+  .rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .rec-card {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: transform .18s, box-shadow .18s;
+    animation: fadeUp .3s ease both;
+  }
+  .rec-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 5px 5px 0 var(--amber);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .rec-card-accent {
+    height: 5px;
+    background: linear-gradient(90deg, var(--amber), var(--rust));
+  }
+
+  .rec-card-body { padding: 1.1rem; flex: 1; display: flex; flex-direction: column; }
+
+  .rec-meta-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: .5rem;
+  }
+
+  .genre-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: .62rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--rust);
+    background: rgba(160,66,42,.08);
+    padding: .18rem .5rem;
+    border: 1px solid rgba(160,66,42,.2);
+  }
+
+  .similarity-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: .75rem;
+    font-weight: 500;
+    color: var(--sage);
+  }
+
+  .rec-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: .2rem;
+    color: var(--ink);
+  }
+
+  .rec-author {
+    font-size: .84rem;
+    font-style: italic;
+    color: var(--muted);
+    margin-bottom: .65rem;
+  }
+
+  .rec-desc {
+    font-size: .83rem;
+    line-height: 1.58;
+    color: #3a3328;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+    margin-bottom: .9rem;
+  }
+
+  .rec-card-footer {
+    border-top: 1px solid var(--cream);
+    padding-top: .7rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .rec-stat {
+    display: flex;
+    flex-direction: column;
+    gap: .12rem;
+  }
+  .rec-stat-val {
+    font-family: 'Playfair Display', serif;
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--amber);
+  }
+  .rec-stat-key {
+    font-family: 'DM Mono', monospace;
+    font-size: .58rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* star rating */
+  .stars { color: var(--amber); font-size: .85rem; letter-spacing: -.05em; }
+
+  /* ── EMPTY & LOADING STATES ────────────────────────────────────────── */
+  .empty-state {
+    grid-column: 1 / -1;
+    padding: 5rem 2rem;
+    text-align: center;
+  }
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: .3;
+  }
+  .empty-state h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: .5rem;
+    color: var(--muted);
+  }
+  .empty-state p {
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 3rem auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── AUTOCOMPLETE ──────────────────────────────────────────────────── */
+  .autocomplete-wrap { position: relative; flex: 1; min-width: 260px; }
+
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--ink);
+    border: 2px solid var(--amber);
+    border-top: none;
+    z-index: 200;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 6px 6px 0 rgba(200,137,58,.35);
+  }
+  .autocomplete-list li {
+    padding: .65rem 1rem;
+    font-size: .9rem;
+    color: var(--paper);
+    cursor: pointer;
+    list-style: none;
+    border-bottom: 1px solid rgba(245,240,232,.08);
+    transition: background .12s;
+  }
+  .autocomplete-list li:hover, .autocomplete-list li.active-ac { background: var(--amber); color: var(--ink); }
+
+  /* ── ERROR TOAST ───────────────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--rust);
+    color: var(--paper);
+    padding: .9rem 1.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: .82rem;
+    border-left: 4px solid #ff6b47;
+    box-shadow: 6px 6px 0 rgba(0,0,0,.3);
+    z-index: 1000;
+    max-width: 380px;
+    animation: slideIn .25s ease;
+    display: none;
+  }
+  .toast.show { display: block; }
+  @keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+
+  /* ── RESPONSIVE ────────────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; padding: 1.5rem; }
+    header { padding: 0 1.5rem; }
+    .hero { padding: 2.5rem 1.5rem 2rem; }
+    .hero::after { display: none; }
+  }
+  @media (max-width: 600px) {
+    .rec-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="wordmark">Biblio<em>graph</em></div>
+  <div class="tagline">Content-Based Book Recommender</div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Discover your<br/><em>next great read</em></h1>
+    <p>Content-based filtering analyses descriptions, genres, and themes to surface books that match exactly what you love.</p>
+
+    <div class="mode-chips">
+      <button class="chip active" onclick="setMode('title')" id="chip-title">By Title</button>
+      <button class="chip" onclick="setMode('description')" id="chip-description">By Description</button>
+    </div>
+
+    <div style="height:.9rem"></div>
+
+    <!-- Title search mode -->
+    <div class="search-wrap" id="mode-title">
+      <div class="autocomplete-wrap">
+        <div class="search-box">
+          <input id="title-input" type="text" placeholder="e.g. The Hunger Games…"
+                 autocomplete="off" oninput="onTitleInput()" onkeydown="onTitleKey(event)"/>
+          <button onclick="searchByTitle()">Recommend →</button>
+        </div>
+        <ul class="autocomplete-list" id="ac-list" style="display:none"></ul>
+      </div>
+    </div>
+
+    <!-- Description search mode -->
+    <div class="search-wrap" id="mode-description" style="display:none">
+      <div style="flex:1;min-width:300px">
+        <textarea class="desc-area" id="desc-input"
+          placeholder="Describe what you're looking for…&#10;e.g. A dystopian society where a young woman rebels against authoritarian control…"></textarea>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="panel">
+      <div class="panel-title">Dataset</div>
+      <div class="panel-body">
+        <div class="stat-grid" id="stats-grid">
+          <div class="stat-card"><span class="stat-num" id="s-books">—</span><span class="stat-label">Books</span></div>
+          <div class="stat-card"><span class="stat-num" id="s-genres">—</span><span class="stat-label">Genres</span></div>
+          <div class="stat-card"><span class="stat-num" id="s-authors">—</span><span class="stat-label">Authors</span></div>
+          <div class="stat-card"><span class="stat-num" id="s-rating">—</span><span class="stat-label">Avg Rating</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Results</div>
+      <div class="panel-body">
+        <div class="slider-row">
+          <label>Top N</label>
+          <input type="range" min="3" max="20" value="8" id="top-n-slider"
+                 oninput="document.getElementById('top-n-val').textContent=this.value"/>
+          <span class="slider-val" id="top-n-val">8</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="genre-panel">
+      <div class="panel-title">Filter by Genre</div>
+      <div class="panel-body" style="padding:0">
+        <ul class="genre-list" id="genre-list">
+          <li onclick="selectGenre(null)" class="active" data-genre="">All Genres <span class="g-count"></span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel" id="desc-btn-panel" style="display:none">
+      <div class="panel-title">Search</div>
+      <div class="panel-body">
+        <button class="btn-full" onclick="searchByDescription()">Find Books →</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RESULTS -->
+  <main class="main-content">
+    <div class="results-header">
+      <div class="results-title" id="results-title">Start Exploring</div>
+      <div class="results-meta" id="results-meta">Enter a title or description above</div>
+    </div>
+    <div id="results-area">
+      <div class="rec-grid">
+        <div class="empty-state">
+          <div class="empty-icon">📚</div>
+          <h3>Your recommendations appear here</h3>
+          <p>Search by book title or describe what you're looking for</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────── */
+/*  State                                                                  */
+/* ────────────────────────────────────────────────────────────────────── */
+let currentMode = 'title';
+let selectedGenre = null;
+let acItems = [];
+let acActive = -1;
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Bootstrap                                                              */
+/* ────────────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  loadStats();
+  loadGenres();
+});
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const { data } = await r.json();
+    document.getElementById('s-books').textContent   = data.total_books?.toLocaleString() ?? '—';
+    document.getElementById('s-genres').textContent  = data.genres ?? '—';
+    document.getElementById('s-authors').textContent = data.authors ?? '—';
+    document.getElementById('s-rating').textContent  = data.avg_rating ?? '—';
+  } catch {}
+}
+
+async function loadGenres() {
+  try {
+    const r = await fetch('/api/genres');
+    const { data } = await r.json();
+    const ul = document.getElementById('genre-list');
+    data.forEach(g => {
+      const li = document.createElement('li');
+      li.dataset.genre = g;
+      li.innerHTML = `${g} <span class="g-count"></span>`;
+      li.onclick = () => selectGenre(g);
+      ul.appendChild(li);
+    });
+  } catch {}
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Mode switching                                                         */
+/* ────────────────────────────────────────────────────────────────────── */
+function setMode(m) {
+  currentMode = m;
+  document.getElementById('mode-title').style.display       = m === 'title' ? 'flex' : 'none';
+  document.getElementById('mode-description').style.display = m === 'description' ? 'flex' : 'none';
+  document.getElementById('desc-btn-panel').style.display   = m === 'description' ? 'block' : 'none';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('chip-' + m).classList.add('active');
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Autocomplete                                                           */
+/* ────────────────────────────────────────────────────────────────────── */
+let acTimeout = null;
+function onTitleInput() {
+  clearTimeout(acTimeout);
+  acTimeout = setTimeout(fetchAc, 220);
+}
+
+async function fetchAc() {
+  const q = document.getElementById('title-input').value.trim();
+  if (q.length < 2) { hideAc(); return; }
+  try {
+    const r = await fetch(`/api/books/search?q=${encodeURIComponent(q)}&limit=8`);
+    const { data } = await r.json();
+    acItems = data;
+    renderAc();
+  } catch { hideAc(); }
+}
+
+function renderAc() {
+  const ul = document.getElementById('ac-list');
+  if (!acItems.length) { hideAc(); return; }
+  ul.innerHTML = '';
+  acItems.forEach((title, i) => {
+    const li = document.createElement('li');
+    li.textContent = title;
+    li.onclick = () => selectAc(i);
+    ul.appendChild(li);
+  });
+  ul.style.display = 'block';
+  acActive = -1;
+}
+
+function hideAc() {
+  document.getElementById('ac-list').style.display = 'none';
+  acActive = -1;
+}
+
+function selectAc(i) {
+  document.getElementById('title-input').value = acItems[i];
+  hideAc();
+  searchByTitle();
+}
+
+function onTitleKey(e) {
+  const ul = document.getElementById('ac-list');
+  if (ul.style.display === 'none') {
+    if (e.key === 'Enter') searchByTitle();
+    return;
+  }
+  const items = ul.querySelectorAll('li');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acActive = Math.min(acActive + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acActive = Math.max(acActive - 1, -1);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (acActive >= 0) { selectAc(acActive); }
+    else { hideAc(); searchByTitle(); }
+    return;
+  } else if (e.key === 'Escape') { hideAc(); return; }
+  items.forEach((li, i) => li.classList.toggle('active-ac', i === acActive));
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.autocomplete-wrap')) hideAc();
+});
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Genre filter                                                           */
+/* ────────────────────────────────────────────────────────────────────── */
+function selectGenre(g) {
+  selectedGenre = g || null;
+  document.querySelectorAll('#genre-list li').forEach(li => {
+    li.classList.toggle('active', (li.dataset.genre === (g || '')));
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Search handlers                                                        */
+/* ────────────────────────────────────────────────────────────────────── */
+async function searchByTitle() {
+  hideAc();
+  const title = document.getElementById('title-input').value.trim();
+  if (!title) { showToast('Please enter a book title.'); return; }
+  const topN = +document.getElementById('top-n-slider').value;
+  showLoading();
+  try {
+    const r = await fetch('/api/recommend/title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, top_n: topN, filter_genre: selectedGenre }),
+    });
+    const json = await r.json();
+    if (!r.ok || json.status === 'error') { showToast(json.message || 'Book not found.'); clearResults(); return; }
+    renderResults(json.data, `"${json.data.query_book?.title || title}"`);
+  } catch { showToast('Could not reach the server. Is it running?'); clearResults(); }
+}
+
+async function searchByDescription() {
+  const desc = document.getElementById('desc-input').value.trim();
+  if (desc.length < 10) { showToast('Please enter a longer description (10+ characters).'); return; }
+  const topN = +document.getElementById('top-n-slider').value;
+  showLoading();
+  try {
+    const r = await fetch('/api/recommend/description', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, top_n: topN }),
+    });
+    const json = await r.json();
+    if (!r.ok || json.status === 'error') { showToast(json.message || 'Error.'); clearResults(); return; }
+    renderResults(json.data, 'your description', true);
+  } catch { showToast('Could not reach the server. Is it running?'); clearResults(); }
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Render                                                                 */
+/* ────────────────────────────────────────────────────────────────────── */
+function showLoading() {
+  document.getElementById('results-area').innerHTML = `<div class="spinner"></div>`;
+  document.getElementById('results-title').textContent = 'Searching…';
+  document.getElementById('results-meta').textContent = '';
+}
+
+function clearResults() {
+  document.getElementById('results-area').innerHTML = `<div class="rec-grid"><div class="empty-state"><div class="empty-icon">📚</div><h3>No results found</h3><p>Try a different title or description</p></div></div>`;
+}
+
+function renderResults(data, label, descMode = false) {
+  const recs = data.recommendations || [];
+  const queryBook = data.query_book;
+  const count = data.count ?? recs.length;
+
+  document.getElementById('results-title').textContent = `Recommendations for ${label}`;
+  document.getElementById('results-meta').textContent  = `${count} result${count !== 1 ? 's' : ''} found`;
+
+  let html = '';
+
+  if (queryBook && !descMode) {
+    html += `
+    <div class="query-book">
+      <div class="book-spine">${escHtml(queryBook.title)}</div>
+      <div>
+        <span class="query-badge">▶ Now reading</span>
+        <h2>${escHtml(queryBook.title)}</h2>
+        <div class="author">by ${escHtml(queryBook.author)} · ${queryBook.year || '—'}</div>
+        <div class="desc">${escHtml(queryBook.description)}</div>
+      </div>
+    </div>`;
+  }
+
+  if (!recs.length) {
+    html += `<div class="rec-grid"><div class="empty-state"><div class="empty-icon">🔍</div><h3>No similar books found</h3><p>Try removing a genre filter or adjusting your search</p></div></div>`;
+  } else {
+    html += `<div class="rec-grid">`;
+    recs.forEach((b, i) => {
+      const score = Math.round(b.similarity_score * 100);
+      const stars = ratingStars(b.avg_rating);
+      html += `
+      <div class="rec-card" style="animation-delay:${i * 45}ms">
+        <div class="rec-card-accent"></div>
+        <div class="rec-card-body">
+          <div class="rec-meta-top">
+            <span class="genre-tag">${escHtml(b.subgenre || b.genre)}</span>
+            <span class="similarity-badge">${score}% match</span>
+          </div>
+          <div class="rec-title">${escHtml(b.title)}</div>
+          <div class="rec-author">by ${escHtml(b.author)}</div>
+          <div class="rec-desc">${escHtml(b.description)}</div>
+          <div class="rec-card-footer">
+            <div class="rec-stat">
+              <span class="rec-stat-val">${stars}</span>
+              <span class="rec-stat-key">${b.avg_rating?.toFixed(2) ?? '—'} / 5</span>
+            </div>
+            <div class="rec-stat">
+              <span class="rec-stat-val">${b.year || '—'}</span>
+              <span class="rec-stat-key">Year</span>
+            </div>
+            <div class="rec-stat">
+              <span class="rec-stat-val">${b.pages || '—'}</span>
+              <span class="rec-stat-key">Pages</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('results-area').innerHTML = html;
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Utilities                                                              */
+/* ────────────────────────────────────────────────────────────────────── */
+function ratingStars(r) {
+  if (!r) return '☆☆☆☆☆';
+  const full = Math.round(r);
+  return '★'.repeat(full) + '☆'.repeat(5 - full);
+}
+
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>
