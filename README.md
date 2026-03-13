@@ -83,56 +83,7 @@ python cli.py stats
 python cli.py genres
 ```
 
----
-
-##  REST API Reference
-
-All endpoints return `{ "status": "ok", "data": ... }` on success or `{ "status": "error", "message": "..." }` on failure.
-
-### `GET /api/health`
-Liveness probe.
-
-### `GET /api/stats`
-Dataset statistics: total books, genre count, author count, average rating.
-
-### `GET /api/genres`
-Sorted list of all genres.
-
-### `GET /api/books/search?q=<query>&limit=10`
-Title autocomplete search.
-
-### `GET /api/books/<isbn>`
-Full book detail by ISBN.
-
-### `POST /api/recommend/title`
-```json
-{
-  "title": "The Hunger Games",
-  "top_n": 8,
-  "filter_genre": "Fiction",   // optional
-  "filter_author": "Collins"   // optional – exclude this author
-}
 ```
-
-### `POST /api/recommend/isbn`
-```json
-{
-  "isbn": "9780061965579",
-  "top_n": 8,
-  "filter_genre": "Fiction"    // optional
-}
-```
-
-### `POST /api/recommend/description`
-```json
-{
-  "description": "A girl must survive a government-controlled arena while sparking a revolution",
-  "top_n": 8
-}
-```
-
----
-
 ##  How It Works
 
 ### Feature Pipeline
