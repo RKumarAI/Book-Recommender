@@ -1,15 +1,9 @@
 # 📚 Bibliograph — Book Recommender
 
 A **content-based filtering** system that recommends books based on descriptions, genres, subgenres, and author style. No ratings history or user accounts required — just tell it what you like and it finds similar books.
-
-![Python](https://img.shields.io/badge/python-3.10+-blue)
-![Flask](https://img.shields.io/badge/flask-3.x-lightgrey)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange)
-![License](https://img.shields.io/badge/license-MIT-green)
-
 ---
 
-## ✨ Features
+##  Features
 
 | Feature | Description |
 |---|---|
@@ -24,7 +18,7 @@ A **content-based filtering** system that recommends books based on descriptions
 
 ---
 
-## 🏗 Project Structure
+## Project Structure
 
 ```
 book-recommender/
@@ -49,7 +43,7 @@ book-recommender/
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1 — Install dependencies
 
@@ -91,7 +85,7 @@ python cli.py genres
 
 ---
 
-## 🔌 REST API Reference
+##  REST API Reference
 
 All endpoints return `{ "status": "ok", "data": ... }` on success or `{ "status": "error", "message": "..." }` on failure.
 
@@ -139,7 +133,7 @@ Full book detail by ISBN.
 
 ---
 
-## 🧠 How It Works
+##  How It Works
 
 ### Feature Pipeline
 
@@ -184,7 +178,7 @@ Score ranges from 0 (no similarity) to 1 (identical). Displayed as a percentage 
 
 ---
 
-## ⚙️ Configuration
+##  Configuration
 
 Customise via `ModelConfig`:
 
@@ -206,7 +200,7 @@ rec = BookRecommender(config=config)
 
 ---
 
-## 📊 Using Your Own Dataset
+##  Using Your Own Dataset
 
 The system accepts any CSV with these columns:
 
@@ -247,7 +241,7 @@ DATA_PATH=data/my_books.csv python app.py
 
 ---
 
-## 🧪 Running Tests
+##  Running Tests
 
 ```bash
 # All tests
@@ -262,7 +256,7 @@ pytest tests/ -k "TestFlaskAPI" -v
 
 ---
 
-## 🛠 Development
+##  Development
 
 ```bash
 # Enable debug mode (auto-reload)
@@ -286,19 +280,5 @@ for r in rec.recommend_by_title('Dune', top_n=3):
 "
 ```
 
----
 
-## 🗺 Roadmap
 
-- [ ] Collaborative filtering layer (user ratings)
-- [ ] Hybrid scoring (content + collaborative)
-- [ ] Goodreads / Open Library API integration
-- [ ] Docker & docker-compose support
-- [ ] Pagination on API results
-- [ ] User reading history tracking
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE) for details.
