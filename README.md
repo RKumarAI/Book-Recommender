@@ -231,12 +231,4 @@ for r in rec.recommend_by_title('Dune', top_n=3):
 "
 ```
 
-Future Chapters (Roadmap)
-[ ] Neural Embeddings: Moving from TF-IDF to BERT or Word2Vec for deeper semantic understanding.
-
-[ ] Live Book Covers: Pulling real-time cover art via the OpenLibrary API.
-
-[ ] Export to PDF: Let users download their "To-Read" list.
-
-
 
