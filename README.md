@@ -1,4 +1,4 @@
-#  Bibliograph — Book Recommender
+# Book Recommender
 
 A **content-based filtering** system that recommends books based on descriptions, genres, subgenres, and author style. No ratings history or user accounts required — just tell it what you like and it finds similar books.
 ---
